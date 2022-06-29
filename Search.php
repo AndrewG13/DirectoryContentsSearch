@@ -48,6 +48,10 @@ function promptUser() {
   $prompt = ">";
   echo "\n\n";
 
+  // @todo Immediately: Create the array to store all file names that contain the phrase (line 225)
+  //                    Output the results at the end of the entire search.
+  //                    Create a new Text file with the results.
+
   // @todo: Make this input process into one function that will be called for each global variable
 
   // @todo: If predefintions are invalid, have the script create a Search_ERRORS.txt,
@@ -145,6 +149,11 @@ function promptUser() {
       // terminate script
     }
   }
+
+  // handle Ignore Case with phrase
+  if ($_IgnoreWordCase == "YES") {
+    $_SearchPhrase = strtoupper($_SearchPhrase);
+  }
 }
 
 /*
@@ -170,30 +179,55 @@ function lookInsideDir($dirpath) {
           // Nested flag is true, ensure entry is not a parent
           if (stripos($entry, '.') !== 0) {
             // recursive call to search this directory too!
-            echo $entry . "\n";
+            //echo $entry . "\n";
             lookInsideDir($dirpath . "/" . $entry);
           }
         }
       } else {
         // entry is a file, examine its contents
-        echo $entry . "\n";
-        searchFile($entry);
+        //echo $entry . "\n";
+        searchFile($dirpath . "/" . $entry);
       }
     }
   } else {
     echo "<!> ERROR: Directory Access Permissions Denied\n";
     // terminate
   }
+  closedir($handle);
 }
 
 /*
 ** Examine File Contents
 **
 */
-function searchFile() {
+function searchFile($filepath) {
   global $_IgnoreWordCase;
 
+  // files will be read line-by-line to improve performance/decrease redundancy
 
+  // get file handle
+  $handle = fopen($filepath);
+  // ensure file is readable (file was verified to exist earlier)
+  if ($handle) {
+
+    // iterate through lines while phrase not found & end of file not reached
+    while (!feof($handle)) {
+      // get current line text
+      $line = fgets($handle);
+      // check if Ignore Case flag is true
+      if ($_IgnoreWordCase == "YES") {
+        // capitalize entire line. Done to match casing
+        $line = strtoupper($line);
+      }
+
+      // finally, search line for the phrase
+      if (str_contains($line, $_SearchPhrase)) {
+        // ...add to array...
+      }
+    }
+  }
+
+  fclose($handle);
 
 }
 
