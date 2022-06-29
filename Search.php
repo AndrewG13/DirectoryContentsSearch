@@ -27,12 +27,13 @@ $_SearchNestedDirs = "";
 ** https://github.com/AndrewG13/DirectoryContentsSearch
 */
 
-// get current directory
-$currentDir = __DIR__;
-// append dir to search inside of
-$dirToSearch = $currentDir . "/" . $_Directory;
-
+// Start script flow
 promptUser();
+
+//echo "D: {$_Directory}\nP: {$_SearchPhrase}\nI: {$_IgnoreWordCase}\nN: {$_SearchNestedDirs}\n";
+
+// begin searching for the phrase, starting with the chosen directory
+lookInsideDir($_Directory);
 
 /*
 ** Prompt User
@@ -69,7 +70,12 @@ function promptUser() {
       }
     }
   } else {
-    echo "<!> Directory Predefined to: [{$_Directory}] in Search.php\n\n";
+    if (file_exists($input)) {
+      $_Directory = __DIR__ . "/" . $input;
+      echo "<!> Directory Predefined to: [{$_Directory}] in Search.php\n\n";
+    } else {
+      echo "<!> ERROR: No Such Directory [{$input}] Exists\n\n";
+    }
   }
 
   // Obtain Search Phrase
@@ -139,24 +145,55 @@ function promptUser() {
       // terminate script
     }
   }
-
-  echo "D: {$_Directory}\nP: {$_SearchPhrase}\nI: {$_IgnoreWordCase}\nN: {$_SearchNestedDirs}\n";
-
 }
 
 /*
 ** Look Inside Directory
 **
 */
-function lookInsideDir() {
+function lookInsideDir($dirpath) {
+  global $_SearchNestedDirs;
 
+  // get directory handle
+  $handle = opendir($dirpath);
+  // ensure directory can be opened (it was verfied to exist earlier)
+  if ($handle) {
+
+    // observe entire structure of directory:
+    //  if $entry is a file: examine its contents
+    //  if $entry is a  dir: look inside ONLY if Nested flag is "YES", skip otherwise
+
+    while (false !== ($entry = readdir($handle))) {
+      if (is_dir($dirpath . "/" . $entry)) {
+        // entry is a directory, check if Nested flag is on
+        if ($_SearchNestedDirs == "YES") {
+          // Nested flag is true, ensure entry is not a parent
+          if (stripos($entry, '.') !== 0) {
+            // recursive call to search this directory too!
+            echo $entry . "\n";
+            lookInsideDir($dirpath . "/" . $entry);
+          }
+        }
+      } else {
+        // entry is a file, examine its contents
+        echo $entry . "\n";
+        searchFile($entry);
+      }
+    }
+  } else {
+    echo "<!> ERROR: Directory Access Permissions Denied\n";
+    // terminate
+  }
 }
 
 /*
 ** Examine File Contents
 **
 */
-function examineFileContents() {
+function searchFile() {
+  global $_IgnoreWordCase;
+
+
 
 }
 
