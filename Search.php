@@ -55,11 +55,15 @@ function promptUser() {
   // Obtain Directory info
   if ($_Directory == "") {
     while ($_Directory == "") {
-      echo "Please Enter the Directory Name You Wish to Search Inside:\n";
+      echo "Please Enter the Directory Name You Wish to Search:\n";
       $input = trim(readline($prompt));
       if ($input != "") {
-        $_Directory = __DIR__ . "/" . $input;
-        echo "\n";
+        if (file_exists($input)) {
+          $_Directory = __DIR__ . "/" . $input;
+          echo "\n";
+        } else {
+          echo "<!> ERROR: No Such Directory [{$input}] Exists\n\n";
+        }
       } else {
         echo "<!> ERROR: No Input Received\n\n";
       }
