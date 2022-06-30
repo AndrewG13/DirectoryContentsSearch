@@ -8,16 +8,16 @@
 */
 
 // ADD THE NAME OF THE DIRECTORY YOU WANT TO SEARCH.
-$_Directory        = "";
+$_Directory        = "TreasureHunt";
 
 // ADD YOUR PHRASE HERE.
-$_SearchPhrase     = "";
+$_SearchPhrase     = "treasure";
 
 // DO YOU WANT TO IGNORE CASE SENSITIVITY? "yes" or "no".
-$_IgnoreWordCase   = "";
+$_IgnoreWordCase   = "yes";
 
 // DO YOU WANT TO SEARCH ALL DIRECTORIES WITHIN CURRENT LOCATION? "yes" or "no"
-$_SearchNestedDirs = "";
+$_SearchNestedDirs = "yes";
 
 /*
 ** Do Not Edit Beyond This Point!
@@ -31,6 +31,14 @@ $_SearchNestedDirs = "";
 $_FileLog = array();
 // UNUSED: establish array for unreadable/denied permission items
 $_AccessDenied = array();
+
+echo "\nThis is the Example Branch\n";
+echo "It is configured to:\n";
+echo "- Look in the 'TreasureHunt' folder\n";
+echo "- Search for the phrase 'treasure'\n";
+echo "- Ignore Word Case (So 'TREASURE' & 'treaSURE' & 'TrEaSuRe' will be found)\n";
+echo "- Search in Nested Folders (So also search in any folders it comes across)\n";
+echo "Mess around with the configuration in 'Search.php', towards the top of the file\n\n";
 
 // Start script flow
 promptUser();
