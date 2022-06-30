@@ -8,16 +8,16 @@
 */
 
 // ADD THE NAME OF THE DIRECTORY YOU WANT TO SEARCH.
-$_Directory        = "test";
+$_Directory        = "";
 
 // ADD YOUR PHRASE HERE.
-$_SearchPhrase     = "banana";
+$_SearchPhrase     = "";
 
 // DO YOU WANT TO IGNORE CASE SENSITIVITY? "yes" or "no".
-$_IgnoreWordCase   = "yes";
+$_IgnoreWordCase   = "";
 
 // DO YOU WANT TO SEARCH ALL DIRECTORIES WITHIN CURRENT LOCATION? "yes" or "no"
-$_SearchNestedDirs = "yes";
+$_SearchNestedDirs = "";
 
 /*
 ** Do Not Edit Beyond This Point!
@@ -29,6 +29,8 @@ $_SearchNestedDirs = "yes";
 
 // establish array for found files
 $_FileLog = array();
+// UNUSED: establish array for unreadable/denied permission items
+$_AccessDenied = array();
 
 // Start script flow
 promptUser();
@@ -38,6 +40,8 @@ lookInsideDir($_Directory);
 
 // create output file: Search_Results.txt
 createOutputFile();
+
+// @todo: Improve Readme & How To Use pages
 
 /*
 ** Prompt User
@@ -50,17 +54,10 @@ function promptUser() {
   global $_SearchNestedDirs;
 
   $prompt = ">";
-  echo "\n\n";
+  echo "Program Started\n\n";
 
-  // @todo Immediately:
-  //                    Output the results at the end of the entire search.
-  //                    Create a new Text file with the results.
-  //                    Improve Readme & add How To Use section on GitHub
-
-  // @todo: Make this input process into one function that will be called for each global variable
-
-  // @todo: If predefintions are invalid, have the script create a Search_ERRORS.txt,
-  //        and auto remove it whenever a script runs successfully.
+  // Note: This input process was not streamlined into one function
+  //       due to the differing nature of input conditions.
 
   // Obtain Directory info
   if ($_Directory == "") {
@@ -81,7 +78,7 @@ function promptUser() {
   } else {
     if (file_exists($_Directory)) {
       $_Directory = __DIR__ . "/" . $_Directory;
-      echo "<✓> Directory Predefined to: [{$_Directory}] in Search.php\n\n";
+      echo "<✓> Directory Predefined to: [{$_Directory}]\n\n";
     } else {
       echo "<!> ERROR: No Such Directory [{$input}] Exists\n\n";
     }
@@ -100,7 +97,7 @@ function promptUser() {
       }
     }
   } else {
-    echo "<✓> Search Phrase Predefined to: [{$_SearchPhrase}] in Search.php\n\n";
+    echo "<✓> Search Phrase Predefined to: [{$_SearchPhrase}]\n\n";
   }
 
   // Obtain Ignorecase flag
@@ -122,10 +119,10 @@ function promptUser() {
   } else {
     $_IgnoreWordCase = strtoupper($_IgnoreWordCase);
     if ($_IgnoreWordCase == "YES" || $_IgnoreWordCase == "NO") {
-      echo "<✓> Ignore Case Flag Predefined to: [{$_IgnoreWordCase}] in Search.php\n\n";
+      echo "<✓> Ignore Case Flag Predefined to: [{$_IgnoreWordCase}]\n\n";
     } else {
-      echo "<!> ERROR: Ignore Case Flag Predefinition Invalid: [{$_IgnoreWordCase}] in Search.php\n\n";
-      // terminate script
+      echo "<!> ERROR: Ignore Case Flag Predefinition Invalid: [{$_IgnoreWordCase}]\n\n";
+      createErrorFile("_IgnoreWordCase is Invalid. Check Search.php, Line: 17");
     }
   }
 
@@ -148,10 +145,10 @@ function promptUser() {
   } else {
     $_SearchNestedDirs = strtoupper($_SearchNestedDirs);
     if ($_SearchNestedDirs == "YES" || $_SearchNestedDirs == "NO") {
-      echo "<✓> Nested Directories Flag Predefined to: [{$_SearchNestedDirs}] in Search.php\n\n";
+      echo "<✓> Nested Directories Flag Predefined to: [{$_SearchNestedDirs}]\n\n";
     } else {
-      echo "<!> ERROR: Nested Directories Flag Predefinition Invalid: [{$_SearchNestedDirs}] in Search.php\n\n";
-      // terminate script
+      echo "<!> ERROR: Nested Directories Flag Predefinition Invalid: [{$_SearchNestedDirs}]\n\n";
+      createErrorFile("_SearchNestedDirs is Invalid. Check Search.php, Line: 20");
     }
   }
 
@@ -167,6 +164,7 @@ function promptUser() {
 */
 function lookInsideDir($dirpath) {
   global $_SearchNestedDirs;
+  global $_AccessDenied;
 
   // get directory handle
   $handle = opendir($dirpath);
@@ -194,8 +192,8 @@ function lookInsideDir($dirpath) {
       }
     }
   } else {
-    echo "<!> ERROR: Directory Access Permissions Denied\n";
-    // terminate
+    // unable to open this directory (access is denied)
+    $_AccessDenied[] = $dirpath;
   }
   closedir($handle);
 }
@@ -207,6 +205,7 @@ function lookInsideDir($dirpath) {
 function searchFile($filepath, $filename) {
   global $_IgnoreWordCase;
   global $_SearchPhrase;
+  global $_AccessDenied;
 
   // files will be read line-by-line to improve performance/decrease redundancy
 
@@ -233,6 +232,9 @@ function searchFile($filepath, $filename) {
 
       $lineNum++;
     }
+  } else {
+    // unable to open this dile (access is denied)
+    $_AccessDenied[] = $dirpath;
   }
 
   fclose($handle);
@@ -264,6 +266,12 @@ function createOutputFile() {
   $outputData = "Placeholder";
   $amountFound = count($_FileLog);
 
+  // first remove an error file if it exists
+  $errorFilePath = __DIR__ . "/Search_ERROR.txt";
+  if (file_exists($errorFilePath)) {
+    unlink($errorFilePath);
+  }
+
   // check if any files were found
   if ($amountFound > 0) {
     // files found, output their details in new output file
@@ -287,10 +295,22 @@ function createOutputFile() {
   file_put_contents($outputFile, $outputData);
 
   if (file_exists($outputFile)) {
-    echo "Search Complete, Check 'Search_Results.txt' File.";
+    echo "Program Completed Successfully";
   } else {
     echo "<!> ERROR: File Creation Permissions Denied";
   }
+}
+
+function createErrorFile($errorMsg) {
+  // create a Search_ERRORS.txt file
+  // populate it with the error that cause the script to stop
+  // errors could include:
+  //   invalid inputs for IgnoreCase & Nested flags
+  //   read access denied
+  $errorMsg = "<!> Program Terminated due to Error:\n    " . $errorMsg;
+  file_put_contents("Search_ERROR.txt", $errorMsg);
+  echo $errorMsg;
+  exit();
 }
 
 ?>
