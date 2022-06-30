@@ -4,20 +4,20 @@
 ** Add Your Search Conditions Below!
 **
 ** Directions are listed above each Search Condition.
-** All text you add should go inbetween the quotation marks.
+** All text you add should go in between the quotation marks.
 */
 
 // ADD THE NAME OF THE DIRECTORY YOU WANT TO SEARCH.
-$_Directory        = "";
+$_Directory        = "test";
 
-// ADD YOUR PHRASE HERE, BETWEEN THE QUOTATION MARKS.
-$_SearchPhrase     = "";
+// ADD YOUR PHRASE HERE.
+$_SearchPhrase     = "banana";
 
 // DO YOU WANT TO IGNORE CASE SENSITIVITY? "yes" or "no".
-$_IgnoreWordCase   = "";
+$_IgnoreWordCase   = "yes";
 
 // DO YOU WANT TO SEARCH ALL DIRECTORIES WITHIN CURRENT LOCATION? "yes" or "no"
-$_SearchNestedDirs = "";
+$_SearchNestedDirs = "yes";
 
 /*
 ** Do Not Edit Beyond This Point!
@@ -27,13 +27,17 @@ $_SearchNestedDirs = "";
 ** https://github.com/AndrewG13/DirectoryContentsSearch
 */
 
+// establish array for found files
+$_FileLog = array();
+
 // Start script flow
 promptUser();
 
-//echo "D: {$_Directory}\nP: {$_SearchPhrase}\nI: {$_IgnoreWordCase}\nN: {$_SearchNestedDirs}\n";
-
 // begin searching for the phrase, starting with the chosen directory
 lookInsideDir($_Directory);
+
+// create output file: Search_Results.txt
+createOutputFile();
 
 /*
 ** Prompt User
@@ -48,9 +52,10 @@ function promptUser() {
   $prompt = ">";
   echo "\n\n";
 
-  // @todo Immediately: Create the array to store all file names that contain the phrase (line 225)
+  // @todo Immediately:
   //                    Output the results at the end of the entire search.
   //                    Create a new Text file with the results.
+  //                    Improve Readme & add How To Use section on GitHub
 
   // @todo: Make this input process into one function that will be called for each global variable
 
@@ -74,9 +79,9 @@ function promptUser() {
       }
     }
   } else {
-    if (file_exists($input)) {
-      $_Directory = __DIR__ . "/" . $input;
-      echo "<!> Directory Predefined to: [{$_Directory}] in Search.php\n\n";
+    if (file_exists($_Directory)) {
+      $_Directory = __DIR__ . "/" . $_Directory;
+      echo "<✓> Directory Predefined to: [{$_Directory}] in Search.php\n\n";
     } else {
       echo "<!> ERROR: No Such Directory [{$input}] Exists\n\n";
     }
@@ -95,7 +100,7 @@ function promptUser() {
       }
     }
   } else {
-    echo "<!> Search Phrase Predefined to: [{$_SearchPhrase}] in Search.php\n\n";
+    echo "<✓> Search Phrase Predefined to: [{$_SearchPhrase}] in Search.php\n\n";
   }
 
   // Obtain Ignorecase flag
@@ -117,7 +122,7 @@ function promptUser() {
   } else {
     $_IgnoreWordCase = strtoupper($_IgnoreWordCase);
     if ($_IgnoreWordCase == "YES" || $_IgnoreWordCase == "NO") {
-      echo "<!> Ignore Case Flag Predefined to: [{$_IgnoreWordCase}] in Search.php\n\n";
+      echo "<✓> Ignore Case Flag Predefined to: [{$_IgnoreWordCase}] in Search.php\n\n";
     } else {
       echo "<!> ERROR: Ignore Case Flag Predefinition Invalid: [{$_IgnoreWordCase}] in Search.php\n\n";
       // terminate script
@@ -143,14 +148,14 @@ function promptUser() {
   } else {
     $_SearchNestedDirs = strtoupper($_SearchNestedDirs);
     if ($_SearchNestedDirs == "YES" || $_SearchNestedDirs == "NO") {
-      echo "<!> Nested Directories Flag Predefined to: [{$_SearchNestedDirs}] in Search.php\n\n";
+      echo "<✓> Nested Directories Flag Predefined to: [{$_SearchNestedDirs}] in Search.php\n\n";
     } else {
       echo "<!> ERROR: Nested Directories Flag Predefinition Invalid: [{$_SearchNestedDirs}] in Search.php\n\n";
       // terminate script
     }
   }
 
-  // handle Ignore Case with phrase
+  // apply Ignore Case to phrase, if flag is set
   if ($_IgnoreWordCase == "YES") {
     $_SearchPhrase = strtoupper($_SearchPhrase);
   }
@@ -185,8 +190,7 @@ function lookInsideDir($dirpath) {
         }
       } else {
         // entry is a file, examine its contents
-        //echo $entry . "\n";
-        searchFile($dirpath . "/" . $entry);
+        searchFile($dirpath . "/" . $entry, $entry);
       }
     }
   } else {
@@ -200,15 +204,17 @@ function lookInsideDir($dirpath) {
 ** Examine File Contents
 **
 */
-function searchFile($filepath) {
+function searchFile($filepath, $filename) {
   global $_IgnoreWordCase;
+  global $_SearchPhrase;
 
   // files will be read line-by-line to improve performance/decrease redundancy
 
-  // get file handle
-  $handle = fopen($filepath);
+  // get file handle, 'r' = read-only mode
+  $handle = fopen($filepath, 'r');
   // ensure file is readable (file was verified to exist earlier)
   if ($handle) {
+    $lineNum = 1;
 
     // iterate through lines while phrase not found & end of file not reached
     while (!feof($handle)) {
@@ -222,13 +228,69 @@ function searchFile($filepath) {
 
       // finally, search line for the phrase
       if (str_contains($line, $_SearchPhrase)) {
-        // ...add to array...
+        addToLog($filename, $lineNum, $filepath);
       }
+
+      $lineNum++;
     }
   }
 
   fclose($handle);
+}
 
+/*
+** Add To Log
+**
+*/
+function addToLog($filename, $line, $location) {
+  global $_FileLog;
+
+  // create array of file attributes, append it to the file log
+  $_FileLog[] = array("Name" => $filename,
+                      "Line" => $line,
+                      "Loc." => $location);
+}
+
+/*
+**
+**
+*/
+function createOutputFile() {
+  global $_FileLog;
+  global $_Directory;
+  global $_SearchPhrase;
+
+  $outputFile = __DIR__ . "/Search_Results.txt";
+  $outputData = "Placeholder";
+  $amountFound = count($_FileLog);
+
+  // check if any files were found
+  if ($amountFound > 0) {
+    // files found, output their details in new output file
+    $outputData = "PHRASE FOUND \n\n" .
+                  "Amount of Files: {$amountFound}\n\n";
+
+    foreach ($_FileLog as $file) {
+      $outputData .= "File Name   -> " . $file['Name'] . "\n";
+      $outputData .= "Line Number -> " . $file['Line'] . "\n";
+      $outputData .= "Location    -> " . $file['Loc.'] . "\n\n";
+    }
+
+  } else {
+    // no files found, output "Phrase Not Found" message in new output file
+    $outputData = "PHRASE NOT FOUND \n\n" .
+                  "No Files Found Containing the Phrase: [{$_SearchPhrase}] \n" .
+                  "Directory Searched:\n  {$_Directory}";
+  }
+
+  // create file
+  file_put_contents($outputFile, $outputData);
+
+  if (file_exists($outputFile)) {
+    echo "Search Complete, Check 'Search_Results.txt' File.";
+  } else {
+    echo "<!> ERROR: File Creation Permissions Denied";
+  }
 }
 
 ?>
